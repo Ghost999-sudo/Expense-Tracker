@@ -28,12 +28,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.expensetracker.ui.components.EmptyExpenseState
 import com.example.expensetracker.ui.components.ExpenseCard
+import com.example.expensetracker.ui.components.InsightsSection
+import com.example.expensetracker.viewmodel.BudgetViewModel
 import com.example.expensetracker.viewmodel.ExpenseViewModel
 import java.util.Locale
 
 @Composable
 fun HomeScreen(
     viewModel: ExpenseViewModel,
+    budgetViewModel: BudgetViewModel,
     onAddExpense: () -> Unit,
     onExpenseClick: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -49,6 +52,9 @@ fun HomeScreen(
         .collectAsStateWithLifecycle()
 
     val todayExpenses by viewModel.todayExpenses
+        .collectAsStateWithLifecycle()
+
+    val budgetUiState by budgetViewModel.budgetUiState
         .collectAsStateWithLifecycle()
 
     Scaffold(
@@ -101,6 +107,14 @@ fun HomeScreen(
                 SummaryCard(
                     totalExpenses = totalExpenses,
                     todayExpenses = todayExpenses
+                )
+            }
+
+            item {
+
+                InsightsSection(
+                    recommendations =
+                        budgetUiState.recommendations
                 )
             }
 

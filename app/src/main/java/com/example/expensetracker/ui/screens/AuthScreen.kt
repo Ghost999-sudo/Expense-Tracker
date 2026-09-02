@@ -41,6 +41,7 @@ import com.example.expensetracker.viewmodel.AuthViewModel
 @Composable
 fun AuthScreen(
     authViewModel: AuthViewModel,
+    onSkip: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
 
@@ -274,6 +275,16 @@ fun AuthScreen(
                     }
                 }
             }
+        }
+
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        TextButton(
+            onClick = onSkip
+        ) {
+            Text("Continue without account")
         }
     }
 }

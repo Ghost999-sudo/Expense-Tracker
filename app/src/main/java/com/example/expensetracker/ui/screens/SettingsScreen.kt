@@ -9,31 +9,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.expensetracker.ui.components.expenseCategories
 import com.example.expensetracker.ui.theme.ThemeMode
 import com.example.expensetracker.viewmodel.AuthViewModel
+import com.example.expensetracker.viewmodel.BudgetViewModel
 import com.example.expensetracker.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    budgetViewModel: BudgetViewModel
 ) {
 
     val settingsUiState by settingsViewModel
@@ -42,6 +54,10 @@ fun SettingsScreen(
 
     val authUiState by authViewModel
         .authUiState
+        .collectAsStateWithLifecycle()
+
+    val budgetUiState by budgetViewModel
+        .budgetUiState
         .collectAsStateWithLifecycle()
 
     Scaffold(
@@ -61,7 +77,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
@@ -155,6 +172,55 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            Text(
+                text = "Monthly Budgets",
+                style =
+                    MaterialTheme.typography.titleLarge
+            )
+
+            Text(
+                text = "Set a limit per category. You'll get a warning when you reach 80%.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Column {
+
+                    expenseCategories.forEachIndexed { index, category ->
+
+                        BudgetRow(
+                            category = category,
+                            currentLimitCents =
+                                budgetUiState.budgets[category]
+                                    ?.monthlyLimit,
+                            onSave = { limitCents ->
+                                budgetViewModel.setBudget(
+                                    category,
+                                    limitCents
+                                )
+                            },
+                            onClear = {
+                                budgetViewModel.clearBudget(
+                                    category
+                                )
+                            }
+                        )
+
+                        if (index < expenseCategories.lastIndex) {
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -189,5 +255,74 @@ private fun ThemeOptionRow(
             style =
                 MaterialTheme.typography.bodyLarge
         )
+    }
+}
+
+@Composable
+private fun BudgetRow(
+    category: String,
+    currentLimitCents: Long?,
+    onSave: (Long) -> Unit,
+    onClear: () -> Unit
+) {
+
+    var inputText by rememberSaveable(category, currentLimitCents) {
+        mutableStateOf(
+            if (currentLimitCents != null && currentLimitCents > 0)
+                (currentLimitCents / 100.0).toBigDecimal()
+                    .stripTrailingZeros().toPlainString()
+            else ""
+        )
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+
+        Text(
+            text = category,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        OutlinedTextField(
+            value = inputText,
+            onValueChange = { inputText = it },
+            modifier = Modifier.weight(1.2f),
+            label = { Text("KSh") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal
+            )
+        )
+
+        if (currentLimitCents != null && currentLimitCents > 0) {
+
+            TextButton(
+                onClick = onClear
+            ) {
+                Text("Clear")
+            }
+
+        } else {
+
+            Button(
+                onClick = {
+                    val amount = inputText
+                        .replace(",", "")
+                        .trim()
+                        .toDoubleOrNull()
+                    if (amount != null && amount > 0) {
+                        onSave((amount * 100).toLong())
+                    }
+                }
+            ) {
+                Text("Set")
+            }
+        }
     }
 }

@@ -66,6 +66,26 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // CameraX
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+
+    // ML Kit — on-device text recognition
+    implementation(libs.mlkit.text.recognition)
+
+    // Accompanist — runtime permissions
+    implementation(libs.accompanist.permissions)
+
+    // Networking & Sync
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.security.crypto)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

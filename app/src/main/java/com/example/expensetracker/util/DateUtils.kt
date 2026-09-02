@@ -218,4 +218,41 @@ object DateUtils {
 
         return calendar.timeInMillis
     }
+
+    fun startOfPrevMonth(
+        timestamp: Long = System.currentTimeMillis()
+    ): Long {
+
+        return Calendar.getInstance().apply {
+
+            timeInMillis = timestamp
+
+            add(Calendar.MONTH, -1)
+
+            set(Calendar.DAY_OF_MONTH, 1)
+
+            set(Calendar.HOUR_OF_DAY, 0)
+
+            set(Calendar.MINUTE, 0)
+
+            set(Calendar.SECOND, 0)
+
+            set(Calendar.MILLISECOND, 0)
+
+        }.timeInMillis
+    }
+
+    fun endOfPrevMonth(
+        timestamp: Long = System.currentTimeMillis()
+    ): Long {
+
+        val calendar = Calendar.getInstance()
+
+        calendar.timeInMillis =
+            startOfPrevMonth(timestamp)
+
+        calendar.add(Calendar.MONTH, 1)
+
+        return calendar.timeInMillis
+    }
 }

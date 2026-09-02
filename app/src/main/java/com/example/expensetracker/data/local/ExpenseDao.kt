@@ -97,4 +97,10 @@ interface ExpenseDao {
         startDate: Long,
         endDate: Long
     ): Flow<Double?>
+
+    @Query("SELECT * FROM expenses WHERE isSynced = 0")
+    suspend fun getUnsyncedExpenses(): List<ExpenseEntity>
+
+    @Query("UPDATE expenses SET isSynced = 1, serverId = :serverId WHERE id = :id")
+    suspend fun markExpenseSynced(id: Int, serverId: String)
 }

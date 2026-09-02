@@ -15,5 +15,11 @@ data class ExpenseEntity(
 
     val description: String = "",
 
-    val date: Long
+    val date: Long,
+
+    val serverId: String? = null,
+
+    val updatedAt: Long = System.currentTimeMillis(),
+
+    val isSynced: Boolean = true
 )

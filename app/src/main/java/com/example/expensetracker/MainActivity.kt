@@ -37,11 +37,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.expensetracker.data.local.ExpenseDatabase
 import com.example.expensetracker.data.repository.AuthRepository
+import com.example.expensetracker.data.repository.BudgetRepository
 import com.example.expensetracker.data.repository.ExpenseRepository
 import com.example.expensetracker.data.repository.SettingsRepository
 import com.example.expensetracker.ui.components.ExpenseBottomBar
 import com.example.expensetracker.ui.screens.AddExpenseScreen
 import com.example.expensetracker.ui.screens.AuthScreen
+import com.example.expensetracker.ui.screens.CameraScreen
 import com.example.expensetracker.ui.screens.ExpenseDetailsScreen
 import com.example.expensetracker.ui.screens.HomeScreen
 import com.example.expensetracker.ui.screens.ReportsScreen
@@ -49,8 +51,11 @@ import com.example.expensetracker.ui.screens.SettingsScreen
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.expensetracker.viewmodel.AuthViewModel
 import com.example.expensetracker.viewmodel.AuthViewModelFactory
+import com.example.expensetracker.viewmodel.BudgetViewModel
+import com.example.expensetracker.viewmodel.BudgetViewModelFactory
 import com.example.expensetracker.viewmodel.ExpenseViewModel
 import com.example.expensetracker.viewmodel.ExpenseViewModelFactory
+import com.example.expensetracker.viewmodel.ParsedReceipt
 import com.example.expensetracker.viewmodel.SettingsViewModel
 import com.example.expensetracker.viewmodel.SettingsViewModelFactory
 import java.io.File
@@ -67,6 +72,12 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val budgetRepository by lazy {
+        BudgetRepository(
+            database.categoryBudgetDao()
+        )
+    }
+
     private val authRepository by lazy {
         AuthRepository(
             database.userDao(),
@@ -80,6 +91,10 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: ExpenseViewModel by viewModels {
         ExpenseViewModelFactory(repository)
+    }
+
+    private val budgetViewModel: BudgetViewModel by viewModels {
+        BudgetViewModelFactory(budgetRepository, repository)
     }
 
     private val authViewModel: AuthViewModel by viewModels {
@@ -105,6 +120,7 @@ class MainActivity : ComponentActivity() {
 
                 ExpenseTrackerRoot(
                     expenseViewModel = viewModel,
+                    budgetViewModel = budgetViewModel,
                     authViewModel = authViewModel,
                     settingsViewModel = settingsViewModel,
                     modifier = Modifier.fillMaxSize()
@@ -117,6 +133,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ExpenseTrackerRoot(
     expenseViewModel: ExpenseViewModel,
+    budgetViewModel: BudgetViewModel,
     authViewModel: AuthViewModel,
     settingsViewModel: SettingsViewModel,
     modifier: Modifier = Modifier
@@ -124,6 +141,9 @@ fun ExpenseTrackerRoot(
 
     val authUiState by authViewModel.authUiState
         .collectAsStateWithLifecycle()
+
+    // Allow the user to skip login and use the app offline
+    var skipAuth by remember { mutableStateOf(false) }
 
     when {
 
@@ -138,10 +158,11 @@ fun ExpenseTrackerRoot(
             }
         }
 
-        authUiState.currentUser == null -> {
+        authUiState.currentUser == null && !skipAuth -> {
 
             AuthScreen(
                 authViewModel = authViewModel,
+                onSkip = { skipAuth = true },
                 modifier = modifier
             )
         }
@@ -150,6 +171,7 @@ fun ExpenseTrackerRoot(
 
             ExpenseTrackerApp(
                 viewModel = expenseViewModel,
+                budgetViewModel = budgetViewModel,
                 settingsViewModel = settingsViewModel,
                 authViewModel = authViewModel,
                 modifier = modifier
@@ -161,6 +183,7 @@ fun ExpenseTrackerRoot(
 @Composable
 fun ExpenseTrackerApp(
     viewModel: ExpenseViewModel,
+    budgetViewModel: BudgetViewModel,
     settingsViewModel: SettingsViewModel,
     authViewModel: AuthViewModel,
     modifier: Modifier = Modifier
@@ -251,6 +274,7 @@ fun ExpenseTrackerApp(
 
                 HomeScreen(
                     viewModel = viewModel,
+                    budgetViewModel = budgetViewModel,
                     onAddExpense = {
                         navController.navigate(
                             "add_expense"
@@ -287,10 +311,36 @@ fun ExpenseTrackerApp(
                 )
             }
 
-            composable("add_expense") {
+            composable("add_expense") { backEntry ->
+
+                val prefill = backEntry
+                    .savedStateHandle
+                    .get<ParsedReceipt>("parsed_receipt")
 
                 AddExpenseScreen(
                     viewModel = viewModel,
+                    onBack = {
+                        navController.popBackStack()
+                    },
+                    onScanReceipt = {
+                        navController.navigate("camera_scan")
+                    },
+                    prefill = prefill
+                )
+            }
+
+            composable("camera_scan") {
+
+                CameraScreen(
+                    onScanComplete = { parsed ->
+
+                        navController
+                            .previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("parsed_receipt", parsed)
+
+                        navController.popBackStack()
+                    },
                     onBack = {
                         navController.popBackStack()
                     }
@@ -311,7 +361,8 @@ fun ExpenseTrackerApp(
 
                 SettingsScreen(
                     settingsViewModel = settingsViewModel,
-                    authViewModel = authViewModel
+                    authViewModel = authViewModel,
+                    budgetViewModel = budgetViewModel
                 )
             }
         }

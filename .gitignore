@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+expense_database.db
+schemas

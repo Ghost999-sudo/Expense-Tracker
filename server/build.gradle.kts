@@ -10,6 +10,11 @@ application {
     mainClass.set("com.example.expensetracker.server.ApplicationKt")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)

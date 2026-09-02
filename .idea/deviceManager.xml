@@ -7,10 +7,13 @@
           <option name="column" value="Name" />
           <option name="order" value="ASCENDING" />
         </ColumnSorterState>
+<<<<<<< HEAD
         <ColumnSorterState>
           <option name="column" value="API" />
           <option name="order" value="ASCENDING" />
         </ColumnSorterState>
+=======
+>>>>>>> 0f7b53aba6304646b4785ac8956134938c0f9b18
       </list>
     </option>
   </component>

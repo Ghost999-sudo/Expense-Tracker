@@ -1,10 +1,13 @@
 package com.example.expensetracker.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.expensetracker.data.local.ExpenseEntity
 import com.example.expensetracker.data.repository.ExpenseRepository
 import com.example.expensetracker.util.DateUtils
+import com.example.expensetracker.util.PdfReportGenerator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ExpenseViewModel(
     private val repository: ExpenseRepository
@@ -209,6 +213,65 @@ class ExpenseViewModel(
 
     suspend fun getExpenseById(id: Int): ExpenseEntity? {
         return repository.getExpenseById(id)
+    }
+
+    private val _pdfUiState =
+        MutableStateFlow(PdfUiState())
+
+    val pdfUiState: StateFlow<PdfUiState> =
+        _pdfUiState.asStateFlow()
+
+    fun generatePdfReport(
+        context: Context,
+        report: ReportUiState,
+        reportTitle: String = "Expense Report"
+    ) {
+
+        viewModelScope.launch {
+
+            _pdfUiState.value =
+                PdfUiState(
+                    isGenerating = true
+                )
+
+            try {
+
+                val file =
+                    withContext(Dispatchers.IO) {
+
+                        val generator =
+                            PdfReportGenerator(context)
+
+                        generator.generateReport(
+                            report = report,
+                            reportTitle = reportTitle
+                        )
+                    }
+
+                _pdfUiState.value =
+                    PdfUiState(
+                        isGenerating = false,
+                        file = file
+                    )
+
+            } catch (exception: Exception) {
+
+                exception.printStackTrace()
+
+                _pdfUiState.value =
+                    PdfUiState(
+                        isGenerating = false,
+                        error =
+                            exception.message
+                                ?: "Unable to generate PDF"
+                    )
+            }
+        }
+    }
+
+    fun clearPdfState() {
+
+        _pdfUiState.value = PdfUiState()
     }
 
     private fun resolveRange(

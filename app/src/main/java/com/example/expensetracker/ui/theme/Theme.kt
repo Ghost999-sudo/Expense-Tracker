@@ -1,6 +1,5 @@
 package com.example.expensetracker.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -34,12 +33,30 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
+fun expenseTrackerIsDarkTheme(
+    themeMode: ThemeMode
+): Boolean {
+
+    return when (themeMode) {
+
+        ThemeMode.LIGHT -> false
+
+        ThemeMode.DARK -> true
+
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+}
+
+@Composable
 fun ExpenseTrackerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+
+    val darkTheme = expenseTrackerIsDarkTheme(themeMode)
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

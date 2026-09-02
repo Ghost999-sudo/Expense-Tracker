@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -22,16 +24,20 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.expensetracker.ui.components.CategorySpendingBar
@@ -46,11 +52,42 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(
-    viewModel: ExpenseViewModel
+    viewModel: ExpenseViewModel,
+    onPdfGenerated: (java.io.File) -> Unit
 ) {
+
+    val context = LocalContext.current
 
     val state by viewModel.reportUiState
         .collectAsStateWithLifecycle()
+
+    val pdfUiState by viewModel.pdfUiState
+        .collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
+
+    LaunchedEffect(pdfUiState.file) {
+
+        pdfUiState.file?.let { file ->
+            onPdfGenerated(file)
+            viewModel.clearPdfState()
+        }
+    }
+
+    LaunchedEffect(pdfUiState.error) {
+
+        pdfUiState.error?.let { error ->
+
+            snackbarHostState.showSnackbar(
+                message =
+                    "PDF generation failed: $error"
+            )
+
+            viewModel.clearPdfState()
+        }
+    }
 
     var showStartDatePicker by remember {
         mutableStateOf(false)
@@ -61,6 +98,13 @@ fun ReportsScreen(
     }
 
     Scaffold(
+
+        snackbarHost = {
+
+            SnackbarHost(
+                hostState = snackbarHostState
+            )
+        },
 
         topBar = {
 
@@ -204,6 +248,49 @@ fun ReportsScreen(
                             total =
                                 state.total
                         )
+                    }
+                }
+            }
+
+            item {
+
+                Button(
+                    onClick = {
+
+                        viewModel.generatePdfReport(
+                            context = context,
+                            report = state,
+                            reportTitle =
+                                "Expense Report"
+                        )
+                    },
+
+                    enabled =
+                        !pdfUiState.isGenerating &&
+                            !state.isLoading,
+
+                    modifier =
+                        Modifier.fillMaxWidth()
+                ) {
+
+                    if (pdfUiState.isGenerating) {
+
+                        CircularProgressIndicator(
+                            modifier =
+                                Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+
+                        Spacer(
+                            modifier =
+                                Modifier.width(8.dp)
+                        )
+
+                        Text("Generating PDF...")
+
+                    } else {
+
+                        Text("Generate PDF")
                     }
                 }
             }
